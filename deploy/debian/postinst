@@ -1,0 +1,39 @@
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ]; then
+    if ! getent passwd rustsolar >/dev/null; then
+        if command -v adduser >/dev/null 2>&1; then
+            adduser --system --group --home /var/lib/rustsolar --no-create-home --gecos "RustSolar" rustsolar >/dev/null
+        else
+            useradd --system --user-group --home-dir /var/lib/rustsolar --no-create-home --shell /usr/sbin/nologin rustsolar
+        fi
+    fi
+    install -d -o rustsolar -g rustsolar -m 0750 /var/lib/rustsolar
+    # Files copied in by hand (config, token, database) must belong to the service user.
+    chown -R rustsolar:rustsolar /var/lib/rustsolar
+    [ -f /var/lib/rustsolar/gateway.token ] && chmod 600 /var/lib/rustsolar/gateway.token
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable rustsolar.service >/dev/null 2>&1 || true
+        # Only (re)start once a config exists, so a fresh install does not crash-loop on a
+        # busy default port before you copy your config in.
+        if [ -f /var/lib/rustsolar/config.toml ]; then
+            systemctl restart rustsolar.service || true
+        else
+            echo "No config yet: copy config.toml to /var/lib/rustsolar/ and run: sudo systemctl start rustsolar"
+        fi
+    fi
+    cat <<MSG
+
+RustSolar installed.
+  Config:   /var/lib/rustsolar/config.toml   (example: /usr/share/doc/rustsolar/config.example.toml)
+  Token:    /var/lib/rustsolar/gateway.token (sudo -u rustsolar RUSTSOLAR_DATA_DIR=/var/lib/rustsolar rustsolar set-token)
+  Service:  sudo systemctl status rustsolar   |   logs: journalctl -u rustsolar -f
+After copying in config/token files:  sudo chown -R rustsolar:rustsolar /var/lib/rustsolar && sudo systemctl restart rustsolar
+Home network: open http://rustsolar.local (set [server] port80 = true to drop the :port).
+  If ufw is on, allow your LAN (example for 192.168.1.x):
+    sudo ufw allow from 192.168.1.0/24 to any port 5353 proto udp   (Ubuntu usually allows this already)
+    sudo ufw allow from 192.168.1.0/24 to any port 80 proto tcp
+MSG
+fi
+exit 0

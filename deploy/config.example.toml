@@ -1,0 +1,85 @@
+# RustSolar example configuration. Copy to <data-dir>/config.toml or use the setup wizard.
+# Values marked "YOURS" must come from your own system/bill; nothing here is a real spec.
+# The gateway token is NOT stored here: use `rustsolar set-token` or the wizard.
+
+[server]
+bind = "127.0.0.1:8080"          # "0.0.0.0:8080" for the LAN (then set password_hash)
+# password_hash = "$argon2id$..."  # rustsolar hash-password
+allow_unauthenticated_lan = false
+session_days = 30
+mdns = true                       # announce http://<mdns_name>.local on the home network
+mdns_name = "rustsolar"
+port80 = false                    # also listen on port 80 (address without :port)
+
+[gateway]
+host = "192.168.1.50"
+tls = "pin"                       # pin | ca | insecure_dev (development only)
+# cert_sha256 = "AB:CD:EF:..."    # rustsolar pin-cert --save
+connect_timeout_s = 5
+request_timeout_s = 10
+store_raw = false                 # keep sanitized raw responses for debugging
+
+[collector]
+enabled = true
+interval_s = 12                   # gateway updates every ~11-14 s
+stale_after_s = 60
+warn_after_min = 5                # minutes without data before warning (0 = immediately)
+max_integration_gap_s = 120
+max_backoff_s = 300
+inventory_interval_s = 3600
+
+# [location]                      # YOURS
+# latitude = 0.0
+# longitude = 0.0
+# elevation_m = 0.0
+# time_zone = "America/Los_Angeles"
+
+# One block per roof face. YOURS: from your installation documents.
+# [[arrays]]
+# name = "South roof"
+# dc_capacity_w = 0.0             # sum of panel STC watts
+# tilt_deg = 20.0
+# azimuth_deg = 180.0             # clockwise from north; 180 = south
+# ac_limit_w = 0.0                # microinverter count x continuous AC rating
+# temp_coeff_per_c = -0.0037      # panel datasheet Pmax coefficient (default estimate)
+# system_losses = 0.14            # default estimate (PVWatts)
+# inverter_efficiency = 0.97      # default estimate
+# albedo = 0.2
+# shading = []                    # e.g. [{ azimuth_from_deg = 240, azimuth_to_deg = 300, below_elevation_deg = 15, beam_factor = 0.2 }]
+
+[battery]
+# usable_kwh = 0.0                # leave unset to use gateway inventory
+# max_power_kw = 0.0              # leave unset to use inventory count x 3.84 kW (IQ Battery 5P)
+round_trip_eff = 0.89
+outage_floor_pct = 0.0
+essential_load_kw = 0.5
+
+[weather]
+enabled = true
+refresh_min = 60
+air_quality = true
+daily_request_budget = 200
+forecast_days = 7
+
+[tariff]
+enabled = false                   # see docs/tariff-example.toml for the structure
+
+[alerts]
+low_soc_pct = 25.0
+underperformance_frac = 0.25
+high_load_factor = 2.0
+quiet_start_hour = 22
+quiet_end_hour = 7
+repeat_after_min = 240
+# webhook_url = "http://homeassistant.local:8123/api/webhook/rustsolar"
+
+[retention]
+raw_days = 90
+five_min_days = 1095
+diagnostics_days = 30
+
+[backup]
+enabled = true
+hour = 3
+keep = 14
+# dir = "D:/Backups/RustSolar"

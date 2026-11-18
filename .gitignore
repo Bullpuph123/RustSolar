@@ -1,0 +1,17 @@
+/target
+/target-parent
+/web/node_modules
+# Secrets and local data must never be committed.
+*.token
+gateway.token
+config.toml
+!deploy/config.example.toml
+*.db
+*.db-wal
+*.db-shm
+/data
+/logs
+/dist
+# The owner's local working log and original brief (personal details).
+/PROGRESS.md
+/Enphase_Energy_Intelligence_Claude_Prompt.md

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+fi
+if [ "$1" = "purge" ]; then
+    # Energy history is deliberately kept. Delete it yourself if you really want to:
+    echo "RustSolar data kept in /var/lib/rustsolar (database, config, token). Remove it manually if no longer needed."
+fi
+exit 0

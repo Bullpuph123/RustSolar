@@ -1,0 +1,119 @@
+# =====================================================================
+# EXAMPLE STRUCTURE ONLY — these are not real PG&E rates.
+# Copy the prices from your own bill / PG&E tariff sheet.
+# Every number below is an obvious placeholder (0.10, 0.20, 0.50 ...).
+# All costs RustSolar shows are ESTIMATES.
+# =====================================================================
+#
+# Notes
+# * Dates are YYYY-MM-DD, bare (2025-01-01) or quoted ("2025-01-01").
+# * Hours are local wall-clock hours (time_zone below), [start_hour, end_hour).
+#   end_hour may be 24; start_hour > end_hour wraps past midnight (21 -> 16).
+# * For every season, each hour 0..23 must be covered by exactly one period
+#   on weekdays and exactly one on weekends. days = "weekday" | "weekend" | "all".
+#   Holidays listed below are treated as weekend days.
+# * Every month 1..12 must belong to exactly one season in each plan.
+# * Prices are $/kWh (fixed_daily is $/day, demand_per_kw is $/kW).
+# * Exports earn NOTHING unless an export rule is configured. Retail-rate
+#   credit only happens with type = "net_metering".
+
+[tariff]
+enabled = true
+currency = "USD"
+time_zone = "America/Los_Angeles"
+holidays = ["2026-01-01", "2026-07-04", "2026-12-25"]
+# Or let RustSolar add PG&E's eight TOU holidays (observed dates) every year:
+# pge_holidays = true
+
+# ---------------------------------------------------------------------
+# Plan version 1: TOU with net metering (NEM-style).
+# ---------------------------------------------------------------------
+[[tariff.plans]]
+name = "TOU example (NEM)"
+effective_from = "2024-01-01"
+fixed_daily = 0.50
+# NEM: exports credited at the same TOU import price, minus
+# non-bypassable charges.
+export = { type = "net_metering", non_bypassable_per_kwh = 0.02 }
+# PG&E Net Billing (NEM 3) customers: use the built-in PG&E export price tables instead.
+# vintage = calendar year your complete interconnection application was submitted (2023-2026);
+# generation = false if a CCA supplies your generation; acc_plus = residential ACC Plus adder;
+# pto_date (optional) ends ACC Plus 9 years after permission to operate.
+# export = { type = "pge_nbt", vintage = 2024, generation = true, acc_plus = true, pto_date = "2024-08-01" }
+# Optional: demand charge in $/kW (most residential plans have none).
+# demand_per_kw = 10.0
+
+# Optional baseline credit (12 daily kWh values, Jan..Dec).
+[tariff.plans.baseline]
+daily_kwh_by_month = [10.0, 10.0, 10.0, 10.0, 10.0, 20.0, 20.0, 20.0, 20.0, 10.0, 10.0, 10.0]
+credit_per_kwh = 0.10
+
+# Alternative to baseline: generic tiers by cumulative monthly import.
+# The last tier has no up_to_kwh_per_month.
+# [[tariff.plans.tiers]]
+# up_to_kwh_per_month = 300.0
+# adder_per_kwh = 0.0
+# [[tariff.plans.tiers]]
+# adder_per_kwh = 0.10
+
+[[tariff.plans.seasons]]
+name = "summer"
+months = [6, 7, 8, 9]
+periods = [
+  { name = "peak",     days = "all", start_hour = 16, end_hour = 21, import_per_kwh = 0.50 },
+  { name = "off-peak", days = "all", start_hour = 21, end_hour = 16, import_per_kwh = 0.30 },
+]
+
+[[tariff.plans.seasons]]
+name = "winter"
+months = [1, 2, 3, 4, 5, 10, 11, 12]
+periods = [
+  { name = "peak",         days = "weekday", start_hour = 16, end_hour = 21, import_per_kwh = 0.40 },
+  { name = "partial-peak", days = "weekday", start_hour = 15, end_hour = 16, import_per_kwh = 0.30 },
+  { name = "off-peak",     days = "weekday", start_hour = 21, end_hour = 15, import_per_kwh = 0.20 },
+  { name = "off-peak",     days = "weekend", start_hour = 0,  end_hour = 24, import_per_kwh = 0.20 },
+]
+
+# ---------------------------------------------------------------------
+# Plan version 2: same TOU shape, net-billing style export schedule.
+# Applies from its effective_from date onward (replaces version 1).
+# ---------------------------------------------------------------------
+[[tariff.plans]]
+name = "TOU example (net billing)"
+effective_from = "2026-06-01"
+fixed_daily = 0.50
+
+# Export price matrix: 12 rows (Jan..Dec) x 24 columns (local hour 0..23).
+# Optional weekend_by_month_hour (same shape) is used on weekends/holidays.
+[tariff.plans.export]
+type = "schedule"
+by_month_hour = [
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Jan
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Feb
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Mar
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Apr
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # May
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Jun
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Jul
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Aug
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Sep
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Oct
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Nov
+  [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05],  # Dec
+]
+
+[[tariff.plans.seasons]]
+name = "summer"
+months = [6, 7, 8, 9]
+periods = [
+  { name = "peak",     days = "all", start_hour = 16, end_hour = 21, import_per_kwh = 0.50 },
+  { name = "off-peak", days = "all", start_hour = 21, end_hour = 16, import_per_kwh = 0.30 },
+]
+
+[[tariff.plans.seasons]]
+name = "winter"
+months = [1, 2, 3, 4, 5, 10, 11, 12]
+periods = [
+  { name = "peak",     days = "all", start_hour = 16, end_hour = 21, import_per_kwh = 0.40 },
+  { name = "off-peak", days = "all", start_hour = 21, end_hour = 16, import_per_kwh = 0.20 },
+]

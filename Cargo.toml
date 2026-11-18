@@ -1,0 +1,80 @@
+[workspace]
+members = [".", "crates/core"]
+
+[workspace.package]
+version = "0.6.2"
+edition = "2024"
+
+[package]
+name = "rustsolar"
+version.workspace = true
+description = "RustSolar — Enphase Energy Intelligence (RocketSalvo)"
+authors = ["Geoffrey Huber"]
+publish = false
+edition.workspace = true
+
+[dependencies]
+rustsolar-core = { path = "crates/core" }
+anyhow = "1.0.104"
+argon2 = "0.6.0"
+async-stream = "0.3.6"
+axum = { version = "0.8.9", features = ["macros"] }
+base64 = "0.23.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+chrono-tz = "0.10.4"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+futures = "0.3.34"
+hex = "0.4.3"
+include_dir = "0.7.4"
+rand = "0.10.3"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json", "http2", "stream"] }
+rusqlite = { version = "0.41.0", features = ["bundled", "backup"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pki-types = { version = "1.15.1", features = ["std"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+toml = "1.1.8"
+tower-http = { version = "0.7.1", features = ["fs", "compression-gzip", "set-header", "trace"] }
+tracing = "0.1.44"
+tracing-appender = "0.2.5"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+webpki-roots = "1.0.11"
+tokio-util = { version = "0.7.20", features = ["rt"] }
+mdns-sd = "0.21.6"
+
+[dev-dependencies]
+rcgen = { version = "0.14.10", default-features = false, features = ["crypto", "pem", "ring"] }
+tempfile = "3.27.0"
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Debian package: cargo deb --no-build --no-strip --target x86_64-unknown-linux-gnu
+[package.metadata.deb]
+name = "rustsolar"
+maintainer = "Geoffrey Huber"
+copyright = "2026 Geoffrey Huber. PolyForm Noncommercial 1.0.0."
+license-file = ["LICENSE.md", "0"]
+extended-description = """\
+Self-hosted Enphase IQ solar, battery and home-energy monitor. Reads the gateway \
+locally (read-only), stores history in SQLite, forecasts solar, load and battery, \
+and serves a web dashboard. A RocketSalvo project. PolyForm Noncommercial 1.0.0: free for noncommercial use; commercial use requires a license."""
+section = "misc"
+priority = "optional"
+depends = "libc6 (>= 2.28)"
+maintainer-scripts = "deploy/debian/"
+assets = [
+    ["target/release/rustsolar", "usr/bin/", "755"],
+    ["deploy/debian/rustsolar.service", "lib/systemd/system/rustsolar.service", "644"],
+    ["deploy/config.example.toml", "usr/share/doc/rustsolar/config.example.toml", "644"],
+    ["README.md", "usr/share/doc/rustsolar/README.md", "644"],
+    ["docs/DEPLOYMENT.md", "usr/share/doc/rustsolar/DEPLOYMENT.md", "644"],
+    ["docs/EXTERNAL-SERVICES.md", "usr/share/doc/rustsolar/EXTERNAL-SERVICES.md", "644"],
+]
